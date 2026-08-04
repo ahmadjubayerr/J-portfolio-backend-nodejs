@@ -60,3 +60,52 @@ model Errors {
   stack                   String?
 }
 
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String?
+  liveUrl     String?
+  githubUrl   String?
+  category    String   @default("Web")
+  tags        String[]
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   @default("Frontend")
+  icon        String?
+  proficiency Int      @default(80)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Profile {
+  id           String   @id @default("hero")
+  name         String   @default("Ahmad Jubayer")
+  headline     String   @default("Creative Designer & Developer")
+  aboutMe      String   @default("I craft beautiful user experiences and high-performance web applications.")
+  profileImage String?
+  resumeUrl    String?
+  websiteCount Int      @default(45)
+  mobileCount  Int      @default(45)
+  projectCount Int      @default(45)
+  updatedAt    DateTime @updatedAt
+}
+
+
+

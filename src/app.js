@@ -6,7 +6,7 @@ import authRoutes from "./routes/auth.js";
 import { RedisStore } from "rate-limit-redis";
 import Redis from "ioredis";
 import messageRoutes from "./routes/message.js";
-import { admin, adminRouter } from "./admin-setup.js";
+import profileRoutes from "./routes/profile.js";
 import compression from "compression";
 import errorMiddleware from "./middlewares/error.js";
 
@@ -16,13 +16,10 @@ const redisClient = new Redis({
   port: 6379,
 });
 
-// 1. Mount AdminJS BEFORE CORS
-// This ensures AdminJS requests aren't subjected to the API CORS policy
-app.use(admin.options.rootPath, adminRouter);
-
-// 2. CORS Configuration
+// 1. CORS Configuration
 const allowedOrigins = [
   "http://localhost:3000",
+  "http://localhost:5173",
   "http://10.10.13.30:3000",
   "http://localhost:4000", // Allow self-origin just in case
   process.env.CLIENT_URL,
@@ -45,7 +42,8 @@ app.use(
 );
 
 // Body parser & cookies
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
 redisClient.on("error", (err) => console.error("Redis error:", err));
 
@@ -65,6 +63,8 @@ app.use(compression());
 
 app.use("/auth", authLimiter, authRoutes);
 app.use("/msg", messageRoutes);
+app.use("/profile", profileRoutes);
+app.use("/api/profile", profileRoutes);
 
 // TEMPORARY: Debug route to test error logging
 app.get("/debug/error", (req, res) => {
@@ -72,12 +72,12 @@ app.get("/debug/error", (req, res) => {
   err.status = 500;
   err.functionName = "testErrorTrigger";
   err.flow = "Debug/Testing";
-  throw err; 
+  throw err;
 });
 
 app.get("/", (req, res) => {
   // for test
-  const longData = "a".repeat(20 * 1024 * 1024);
+  const longData = "a".repeat(20);
   res.json({ status: "ok", longData });
 });
 
