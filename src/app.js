@@ -19,6 +19,9 @@ const allowedOrigins = [
   "http://127.0.0.1:5173",
   "http://10.10.13.30:3000",
   "http://localhost:4000",
+  "https://www.ahmadjubayerr.site",
+  "https://ahmadjubayerr.site",
+  "https://jubayer-dashboard.vercel.app",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
