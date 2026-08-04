@@ -15,6 +15,7 @@ import {
   deleteProject,
   toggleProjectFavorite,
   toggleProjectPublish,
+  uploadFile,
   // Experience
   getAdminExperiences,
   createExperience,
@@ -69,6 +70,7 @@ router.put("/projects/:id", projectUpload, updateProject);
 router.delete("/projects/:id", deleteProject);
 router.patch("/projects/:id/favorite", toggleProjectFavorite);
 router.patch("/projects/:id/publish", toggleProjectPublish);
+router.post("/upload", upload.single("file"), uploadFile);
 
 // ─── Experience ─────────────────────────────────────────────────────
 router.get("/experiences", getAdminExperiences);

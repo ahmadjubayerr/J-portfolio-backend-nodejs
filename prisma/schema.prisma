@@ -72,6 +72,10 @@ model Profile {
   profileImage          String?                 // Cloudinary URL
   resumeUrl             String?                 // Cloudinary URL or external link
   visionImage           String?                 // Cloudinary URL
+  whyChooseMeFeatures   Json?
+  whyChooseMeHeading    String   @default("Why I'm Your Ideal Design Partner")
+  projectHeroText       String   @default("Designs that tell. \nExperiences that connect.")
+  projectCategories     Json?
   websiteDesignCount    Int      @default(0)
   mobileAppDesignCount  Int      @default(0)
   liveProjectCount      Int      @default(0)
@@ -85,9 +89,12 @@ model Achievement {
   id        String   @id @default(cuid())
   image     String                           // Cloudinary URL
   profileId String   @default("hero")
+  slot      Int      @default(0)
   createdAt DateTime @default(now())
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, slot])
 }
 
 // ─── Portfolio: Project ─────────────────────────────────────────────
@@ -98,6 +105,9 @@ model Project {
   tag               String   @default("")         // Comma separated tags
   category          String   @default("website")  // website, mobile, live, case_study, graphics, saas, dashboard, landing_page
   duration          String   @default("")
+  responsibility    String?  @default("UX & UI Design")
+  client            String?  @default("Client Work")
+  bgColor           String?  @default("#081228")  // Project page background color
   canvasImage       String?                       // Cloudinary URL
   svgFile           String?                       // Cloudinary URL
   overviewVideoLink String?                       // YouTube or external link

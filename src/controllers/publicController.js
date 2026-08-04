@@ -5,10 +5,12 @@ import { sendContactNotificationEmail } from "../lib/email.js";
 // Returns profile data in the EXACT same shape as Django
 export const getPublicProfile = async (req, res, next) => {
   try {
-    let profile = await prisma.profile.findUnique({
-      where: { id: "hero" },
-      include: { achievements: true },
-    });
+    let profile = await dbQueryWithRetry(() =>
+      prisma.profile.findUnique({
+        where: { id: "hero" },
+        include: { achievements: true },
+      })
+    );
 
     if (!profile) {
       return res.status(404).json({ detail: "Profile not found" });
@@ -29,7 +31,15 @@ export const getPublicProfile = async (req, res, next) => {
       },
       profile_image: profile.profileImage,
       vision: profile.visionImage,
-      achievements: profile.achievements.map((a) => a.image),
+      achievements: (() => {
+        const arr = Array(7).fill(null);
+        profile.achievements.forEach((ach) => {
+          if (ach.slot >= 0 && ach.slot < 7) {
+            arr[ach.slot] = ach.image;
+          }
+        });
+        return arr;
+      })(),
       // Also include Node.js-style fields so dashboard/frontend can use either
       aboutMe: profile.aboutMe,
       whyHireMe: profile.whyHireMe,
@@ -40,6 +50,13 @@ export const getPublicProfile = async (req, res, next) => {
       mobileCount: profile.mobileAppDesignCount,
       projectCount: profile.liveProjectCount,
       headline: profile.headline,
+      whyChooseMeFeatures: profile.whyChooseMeFeatures,
+      whyChooseMeHeading: profile.whyChooseMeHeading,
+      why_choose_me_heading: profile.whyChooseMeHeading,
+      projectHeroText: profile.projectHeroText,
+      project_hero_text: profile.projectHeroText,
+      projectCategories: profile.projectCategories,
+      project_categories: profile.projectCategories,
     };
 
     res.json(data);
@@ -50,6 +67,20 @@ export const getPublicProfile = async (req, res, next) => {
 
 // ─── GET /api/projects/ ─────────────────────────────────────────────
 // List all published projects. Optional ?category= filter
+// Helper: retry DB queries to handle Neon DB cold-starts / pooler reconnects
+async function dbQueryWithRetry(fn, retries = 3, delayMs = 500) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      console.warn(`[DB Retry] Attempt ${i + 1}/${retries} failed: ${err.message}. Retrying in ${delayMs}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
+// ─── GET /api/projects/ ─────────────────────────────────────────────
 export const getPublicProjects = async (req, res, next) => {
   try {
     const { category } = req.query;
@@ -58,10 +89,12 @@ export const getPublicProjects = async (req, res, next) => {
       where.category = category;
     }
 
-    const projects = await prisma.project.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
+    const projects = await dbQueryWithRetry(() =>
+      prisma.project.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      })
+    );
 
     const data = projects.map(formatProjectForPublic);
     res.json(data);
@@ -73,10 +106,12 @@ export const getPublicProjects = async (req, res, next) => {
 // ─── GET /api/favorite-projects/ ────────────────────────────────────
 export const getPublicFavoriteProjects = async (req, res, next) => {
   try {
-    const projects = await prisma.project.findMany({
-      where: { isFavorite: true, isPublished: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const projects = await dbQueryWithRetry(() =>
+      prisma.project.findMany({
+        where: { isFavorite: true, isPublished: true },
+        orderBy: { createdAt: "desc" },
+      })
+    );
 
     const data = projects.map(formatProjectForPublic);
     res.json(data);
@@ -225,10 +260,20 @@ function formatProjectForPublic(p) {
     tag: p.tag,
     category: p.category,
     duration: p.duration,
+    responsibility: p.responsibility || "UX & UI Design",
+    client: p.client || "Client Work",
+    bg_color: p.bgColor || "#081228",
+    bgColor: p.bgColor || "#081228",
     canvas_image: p.canvasImage,
+    canvasImage: p.canvasImage,
+    image: p.canvasImage,
     svg_file: p.svgFile,
+    svgFile: p.svgFile,
     overview_video_link: p.overviewVideoLink,
+    overviewVideoLink: p.overviewVideoLink,
     body: p.body,
     is_favorite: p.isFavorite,
+    isFavorite: p.isFavorite,
+    isPublished: p.isPublished,
   };
 }

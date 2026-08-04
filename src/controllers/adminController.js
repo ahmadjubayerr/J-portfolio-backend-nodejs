@@ -30,7 +30,8 @@ export const updateAdminProfile = async (req, res, next) => {
     const {
       name, headline, aboutMe, whyHireMe, expertise, skills,
       websiteDesignCount, mobileAppDesignCount, liveProjectCount,
-      profileImage, resumeUrl, visionImage,
+      profileImage, resumeUrl, visionImage, whyChooseMeFeatures, whyChooseMeHeading,
+      projectHeroText, projectCategories,
       // Legacy field names from dashboard
       websiteCount, mobileCount, projectCount,
     } = req.body;
@@ -47,6 +48,10 @@ export const updateAdminProfile = async (req, res, next) => {
         ...(profileImage !== undefined && { profileImage }),
         ...(resumeUrl !== undefined && { resumeUrl }),
         ...(visionImage !== undefined && { visionImage }),
+        ...(whyChooseMeFeatures !== undefined && { whyChooseMeFeatures }),
+        ...(whyChooseMeHeading !== undefined && { whyChooseMeHeading }),
+        ...(projectHeroText !== undefined && { projectHeroText }),
+        ...(projectCategories !== undefined && { projectCategories }),
         ...((websiteDesignCount !== undefined || websiteCount !== undefined) && {
           websiteDesignCount: parseInt(websiteDesignCount ?? websiteCount) || 0,
         }),
@@ -68,6 +73,10 @@ export const updateAdminProfile = async (req, res, next) => {
         profileImage: profileImage || null,
         resumeUrl: resumeUrl || null,
         visionImage: visionImage || null,
+        whyChooseMeFeatures: whyChooseMeFeatures || null,
+        whyChooseMeHeading: whyChooseMeHeading || "Why I'm Your Ideal Design Partner",
+        projectHeroText: projectHeroText || "Designs that tell. \nExperiences that connect.",
+        projectCategories: projectCategories || null,
         websiteDesignCount: parseInt(websiteDesignCount ?? websiteCount) || 0,
         mobileAppDesignCount: parseInt(mobileAppDesignCount ?? mobileCount) || 0,
         liveProjectCount: parseInt(liveProjectCount ?? projectCount) || 0,
@@ -158,9 +167,55 @@ export const getAdminProject = async (req, res, next) => {
   }
 };
 
+export const uploadFile = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+    const folder = req.body.folder || "portfolio/uploads";
+    const resourceType = req.file.mimetype.startsWith("video/") ? "video" : "auto";
+    const result = await uploadToCloudinary(req.file.buffer, folder, resourceType);
+    res.json({ url: result.url });
+  } catch (error) {
+    next(error);
+  }
+};
+
+async function processBodyBase64Images(bodyStr) {
+  if (!bodyStr || typeof bodyStr !== "string") return bodyStr;
+  if (!bodyStr.trim().startsWith("[")) return bodyStr;
+
+  try {
+    const blocks = JSON.parse(bodyStr);
+    if (!Array.isArray(blocks)) return bodyStr;
+
+    let modified = false;
+    for (const block of blocks) {
+      if ((block.type === "image" || block.type === "video") && block.content && block.content.startsWith("data:")) {
+        try {
+          const base64Data = block.content.replace(/^data:(image|video)\/\w+;base64,/, "");
+          const buffer = Buffer.from(base64Data, "base64");
+          const resType = block.type === "video" ? "video" : "auto";
+          const result = await uploadToCloudinary(buffer, "portfolio/projects/blocks", resType);
+          block.content = result.url;
+          modified = true;
+        } catch (err) {
+          console.error("Failed to upload block base64 image to Cloudinary:", err);
+        }
+      }
+    }
+    if (modified) {
+      return JSON.stringify(blocks);
+    }
+  } catch (e) {
+    // Ignore JSON parse error
+  }
+  return bodyStr;
+}
+
 export const createProject = async (req, res, next) => {
   try {
-    const { title, body, tag, category, duration, overviewVideoLink, isFavorite, isPublished } = req.body;
+    const { title, body, tag, category, duration, responsibility, client, bgColor, overviewVideoLink, isFavorite, isPublished } = req.body;
 
     let canvasImageUrl = null;
     let svgFileUrl = null;
@@ -177,17 +232,45 @@ export const createProject = async (req, res, next) => {
       }
     }
 
-    // Also accept URL strings directly (from dashboard base64 or URLs)
+    // Also accept URL strings directly
     if (!canvasImageUrl && req.body.canvasImage) canvasImageUrl = req.body.canvasImage;
     if (!svgFileUrl && req.body.svgFile) svgFileUrl = req.body.svgFile;
+
+    // Automatically convert base64 image data to Cloudinary upload
+    if (canvasImageUrl && canvasImageUrl.startsWith("data:image")) {
+      try {
+        const base64Data = canvasImageUrl.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const result = await uploadToCloudinary(buffer, "portfolio/projects/canvas");
+        canvasImageUrl = result.url;
+      } catch (err) {
+        console.error("Failed to upload base64 canvasImage to Cloudinary:", err);
+      }
+    }
+
+    if (svgFileUrl && svgFileUrl.startsWith("data:image")) {
+      try {
+        const base64Data = svgFileUrl.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const result = await uploadToCloudinary(buffer, "portfolio/projects/svg");
+        svgFileUrl = result.url;
+      } catch (err) {
+        console.error("Failed to upload base64 svgFile to Cloudinary:", err);
+      }
+    }
+
+    const processedBody = await processBodyBase64Images(body || "");
 
     const project = await prisma.project.create({
       data: {
         title: title || "Untitled Project",
-        body: body || "",
+        body: processedBody,
         tag: tag || "",
         category: category || "website",
         duration: duration || "",
+        responsibility: responsibility || "UX & UI Design",
+        client: client || "Client Work",
+        bgColor: bgColor || "#081228",
         overviewVideoLink: overviewVideoLink || null,
         canvasImage: canvasImageUrl,
         svgFile: svgFileUrl,
@@ -205,7 +288,7 @@ export const createProject = async (req, res, next) => {
 export const updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, body, tag, category, duration, overviewVideoLink, isFavorite, isPublished } = req.body;
+    const { title, body, tag, category, duration, responsibility, client, bgColor, overviewVideoLink, isFavorite, isPublished } = req.body;
 
     const existing = await prisma.project.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ message: "Project not found" });
@@ -224,19 +307,51 @@ export const updateProject = async (req, res, next) => {
       }
     }
 
-    // Accept URL strings directly
-    if (req.body.canvasImage && !req.files?.canvasImage) canvasImageUrl = req.body.canvasImage;
-    if (req.body.svgFile && !req.files?.svgFile) svgFileUrl = req.body.svgFile;
+    // Accept URL strings directly (allow clearing if explicitly passed as null/empty)
+    if (req.body.canvasImage !== undefined && !req.files?.canvasImage) {
+      canvasImageUrl = req.body.canvasImage || null;
+    }
+    if (req.body.svgFile !== undefined && !req.files?.svgFile) {
+      svgFileUrl = req.body.svgFile || null;
+    }
+
+    // Automatically convert base64 image data to Cloudinary upload
+    if (canvasImageUrl && canvasImageUrl.startsWith("data:image")) {
+      try {
+        const base64Data = canvasImageUrl.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const result = await uploadToCloudinary(buffer, "portfolio/projects/canvas");
+        canvasImageUrl = result.url;
+      } catch (err) {
+        console.error("Failed to upload base64 canvasImage to Cloudinary:", err);
+      }
+    }
+
+    if (svgFileUrl && svgFileUrl.startsWith("data:image")) {
+      try {
+        const base64Data = svgFileUrl.replace(/^data:image\/\w+;base64,/, "");
+        const buffer = Buffer.from(base64Data, "base64");
+        const result = await uploadToCloudinary(buffer, "portfolio/projects/svg");
+        svgFileUrl = result.url;
+      } catch (err) {
+        console.error("Failed to upload base64 svgFile to Cloudinary:", err);
+      }
+    }
+
+    const processedBody = body !== undefined ? await processBodyBase64Images(body) : undefined;
 
     const project = await prisma.project.update({
       where: { id },
       data: {
         ...(title !== undefined && { title }),
-        ...(body !== undefined && { body }),
+        ...(processedBody !== undefined && { body: processedBody }),
         ...(tag !== undefined && { tag }),
         ...(category !== undefined && { category }),
         ...(duration !== undefined && { duration }),
-        ...(overviewVideoLink !== undefined && { overviewVideoLink }),
+        ...(responsibility !== undefined && { responsibility }),
+        ...(client !== undefined && { client }),
+        ...(bgColor !== undefined && { bgColor }),
+        ...(overviewVideoLink !== undefined && { overviewVideoLink: overviewVideoLink || null }),
         ...(isFavorite !== undefined && { isFavorite: isFavorite === true || isFavorite === "true" }),
         ...(isPublished !== undefined && { isPublished: isPublished === true || isPublished === "true" }),
         canvasImage: canvasImageUrl,
@@ -479,7 +594,7 @@ export const deleteCertification = async (req, res, next) => {
 
 export const getAdminAchievements = async (req, res, next) => {
   try {
-    const achievements = await prisma.achievement.findMany({ orderBy: { createdAt: "desc" } });
+    const achievements = await prisma.achievement.findMany({ orderBy: { slot: "asc" } });
     res.json(achievements);
   } catch (error) {
     next(error);
@@ -498,8 +613,23 @@ export const createAchievement = async (req, res, next) => {
 
     if (!imageUrl) return res.status(400).json({ message: "Image is required" });
 
-    const achievement = await prisma.achievement.create({
-      data: { image: imageUrl, profileId: "hero" },
+    const slot = req.body.slot !== undefined ? parseInt(req.body.slot) : 0;
+
+    const achievement = await prisma.achievement.upsert({
+      where: {
+        profileId_slot: {
+          profileId: "hero",
+          slot: slot,
+        },
+      },
+      update: {
+        image: imageUrl,
+      },
+      create: {
+        image: imageUrl,
+        profileId: "hero",
+        slot: slot,
+      },
     });
     res.status(201).json({ message: "Achievement added", achievement });
   } catch (error) {

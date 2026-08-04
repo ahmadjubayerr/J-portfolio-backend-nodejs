@@ -37,6 +37,29 @@ async function main() {
       profileImage: getFullUrl("/media/profile/Mask_group.png"),
       resumeUrl: getFullUrl("/media/resumes/Jubayer_Ahmad-01757976790_2.pdf"),
       visionImage: getFullUrl("/media/vision/ahmadjubayerr-4th_2_no_image.jpg"),
+      whyChooseMeHeading: "Why I'm Your Ideal Design Partner",
+      whyChooseMeFeatures: [
+        {
+          title: "Product-First Mindset",
+          body: "I design with a deep understanding of user needs, business goals, and long-term product scalability—not just screens.",
+          icon: "Lightbulb"
+        },
+        {
+          title: "Clarity Over Complexity",
+          body: "I simplify complex flows into intuitive, easy-to-use experiences that users understand without friction.",
+          icon: "Smartphone"
+        },
+        {
+          title: "End-to-End Design Ownership",
+          body: "From research and information architecture to UI and design systems, I handle the complete design process.",
+          icon: "Contact"
+        },
+        {
+          title: "Built for Real-World Use",
+          body: "My designs are practical, developer-friendly, and ready to ship—focused on usability, not just aesthetics.",
+          icon: "Globe"
+        }
+      ],
       websiteDesignCount: 30,
       mobileAppDesignCount: 30,
       liveProjectCount: 30,
@@ -46,19 +69,20 @@ async function main() {
 
   // 3. Achievements (Gallery Images)
   const achievements = [
-    "/media/achievements/freepik__dont-change-my-face-and-transform-this-uploaded-im__72879.jpeg",
-    "/media/achievements/UIUX_Designer_Professional_Portrait_a3ad51v.png",
-    "/media/achievements/Emoployee_off_the_month_ueapqfj.png",
-    "/media/achievements/2025-11-12_02_38_58.9780600.jpg",
-    "/media/achievements/_Image_1_BArqyg3.png",
-    "/media/achievements/freepik__vibrant-expressive-portrait-of-me-looking-upwards-__10017_Y8OdYS6.jpeg",
-    "/media/achievements/2025-11-12_01_38_30.1380600_1.png"
+    { image: "/media/achievements/freepik__dont-change-my-face-and-transform-this-uploaded-im__72879.jpeg", slot: 0 },
+    { image: "/media/achievements/UIUX_Designer_Professional_Portrait_a3ad51v.png", slot: 1 },
+    { image: "/media/achievements/Emoployee_off_the_month_ueapqfj.png", slot: 2 },
+    { image: "/media/achievements/2025-11-12_02_38_58.9780600.jpg", slot: 3 },
+    { image: "/media/achievements/_Image_1_BArqyg3.png", slot: 4 },
+    { image: "/media/achievements/freepik__vibrant-expressive-portrait-of-me-looking-upwards-__10017_Y8OdYS6.jpeg", slot: 5 },
+    { image: "/media/achievements/2025-11-12_01_38_30.1380600_1.png", slot: 6 }
   ];
 
   for (const ach of achievements) {
     await prisma.achievement.create({
       data: {
-        image: getFullUrl(ach),
+        image: getFullUrl(ach.image),
+        slot: ach.slot,
         profileId: "hero"
       }
     });
