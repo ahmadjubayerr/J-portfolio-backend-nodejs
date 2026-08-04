@@ -2,28 +2,23 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-import authRoutes from "./routes/auth.js";
-import { RedisStore } from "rate-limit-redis";
-import Redis from "ioredis";
-import messageRoutes from "./routes/message.js";
-import profileRoutes from "./routes/profile.js";
 import compression from "compression";
+import authRoutes from "./routes/auth.js";
+import messageRoutes from "./routes/message.js";
+import publicRoutes from "./routes/public.js";
+import adminRoutes from "./routes/admin.js";
 import errorMiddleware from "./middlewares/error.js";
 
 const app = express();
-const redisClient = new Redis({
-  host: "127.0.0.1",
-  port: 6379,
-});
 
 // 1. CORS Configuration
 const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
   "http://10.10.13.30:3000",
-  "http://localhost:4000", // Allow self-origin just in case
+  "http://localhost:4000",
   process.env.CLIENT_URL,
-];
+].filter(Boolean);
 
 app.use(
   cors({
@@ -45,40 +40,38 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
-redisClient.on("error", (err) => console.error("Redis error:", err));
+app.use(compression());
 
-// ✅ Rate limiting for /auth routes
+// Rate limiting (in-memory, no Redis)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
   message: { message: "Too many login attempts, try again later" },
   standardHeaders: true,
   legacyHeaders: false,
-
-  store: new RedisStore({
-    sendCommand: (command, ...args) => redisClient.call(command, ...args),
-  }),
 });
-app.use(compression());
 
+// ─── Routes ─────────────────────────────────────────────────────────
+
+// Auth routes (with rate limiting)
 app.use("/auth", authLimiter, authRoutes);
+
+// Chat/messaging routes
 app.use("/msg", messageRoutes);
-app.use("/profile", profileRoutes);
-app.use("/api/profile", profileRoutes);
 
-// TEMPORARY: Debug route to test error logging
-app.get("/debug/error", (req, res) => {
-  const err = new Error("This is a deliberate test error!");
-  err.status = 500;
-  err.functionName = "testErrorTrigger";
-  err.flow = "Debug/Testing";
-  throw err;
-});
+// Public API routes (Django-compatible, no auth needed)
+// These are the routes the frontend portfolio uses
+app.use("/api", publicRoutes);
 
+// Also mount profile at /profile for backward compat with dashboard
+app.use("/profile", publicRoutes);
+
+// Admin/Dashboard API routes (no backend auth — dashboard uses its own simple auth)
+app.use("/admin", adminRoutes);
+
+// Health check
 app.get("/", (req, res) => {
-  // for test
-  const longData = "a".repeat(20);
-  res.json({ status: "ok", longData });
+  res.json({ status: "ok", message: "Portfolio Backend API" });
 });
 
 // Handle 404 - Not Found

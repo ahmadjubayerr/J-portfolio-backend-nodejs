@@ -1,18 +1,16 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 generator client {
   provider = "prisma-client-js"
 }
-
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// ─── Auth & Users ───────────────────────────────────────────────────
 model User {
   id           Int       @id @default(autoincrement())
   email        String    @unique
@@ -26,21 +24,22 @@ model User {
   updatedAt    DateTime  @updatedAt
 }
 
+// ─── Chat (existing, kept for future use) ───────────────────────────
 model Room {
-  id        String   @id @default(cuid())
-  user1Id  Int
-  user2Id  Int
-  createdAt DateTime @default(now())
-  messages Message[]
+  id        String    @id @default(cuid())
+  user1Id   Int
+  user2Id   Int
+  createdAt DateTime  @default(now())
+  messages  Message[]
 
   @@unique([user1Id, user2Id])
 }
 
 model Message {
   id        String   @id @default(cuid())
-  roomId   String
-  senderId Int
-  content  String
+  roomId    String
+  senderId  Int
+  content   String
   createdAt DateTime @default(now())
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
@@ -49,31 +48,108 @@ model Message {
   @@index([senderId])
 }
 
+// ─── Error Logging ──────────────────────────────────────────────────
 model Errors {
-  id                      String   @id @default(cuid())
-  message                 String
-  createdAt               DateTime @default(now())
-  endpoint               String
-  function_name           String?
+  id                       String   @id @default(cuid())
+  message                  String
+  createdAt                DateTime @default(now())
+  endpoint                 String
+  function_name            String?
   flow_that_does_the_error String?
-  payload                 String?
-  stack                   String?
+  payload                  String?
+  stack                    String?
 }
 
+// ─── Portfolio: Profile (Singleton) ─────────────────────────────────
+model Profile {
+  id                    String   @id @default("hero")
+  name                  String   @default("Ahmad Jubayer")
+  headline              String   @default("Creative Designer & Developer")
+  aboutMe               String   @default("I craft beautiful user experiences and high-performance web applications.")
+  whyHireMe             String   @default("")
+  expertise             String   @default("")   // Comma separated
+  skills                String   @default("")   // Comma separated
+  profileImage          String?                 // Cloudinary URL
+  resumeUrl             String?                 // Cloudinary URL or external link
+  visionImage           String?                 // Cloudinary URL
+  websiteDesignCount    Int      @default(0)
+  mobileAppDesignCount  Int      @default(0)
+  liveProjectCount      Int      @default(0)
+  updatedAt             DateTime @updatedAt
+
+  achievements Achievement[]
+}
+
+// ─── Portfolio: Achievement (Gallery images linked to Profile) ──────
+model Achievement {
+  id        String   @id @default(cuid())
+  image     String                           // Cloudinary URL
+  profileId String   @default("hero")
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// ─── Portfolio: Project ─────────────────────────────────────────────
 model Project {
+  id                String   @id @default(cuid())
+  title             String
+  body              String                        // Rich text / description
+  tag               String   @default("")         // Comma separated tags
+  category          String   @default("website")  // website, mobile, live, case_study, graphics, saas, dashboard, landing_page
+  duration          String   @default("")
+  canvasImage       String?                       // Cloudinary URL
+  svgFile           String?                       // Cloudinary URL
+  overviewVideoLink String?                       // YouTube or external link
+  isFavorite        Boolean  @default(false)
+  isPublished       Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ─── Portfolio: Experience ──────────────────────────────────────────
+model Experience {
   id          String   @id @default(cuid())
+  position    String
   title       String
   description String
-  imageUrl    String?
-  liveUrl     String?
-  githubUrl   String?
-  category    String   @default("Web")
-  tags        String[]
-  featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
+// ─── Portfolio: Education ───────────────────────────────────────────
+model Education {
+  id          String   @id @default(cuid())
+  title       String
+  university  String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Portfolio: Certification ───────────────────────────────────────
+model Certification {
+  id          String   @id @default(cuid())
+  title       String
+  institute   String
+  description String
+  image       String?                          // Cloudinary URL (certificate image)
+  pdfFile     String?                          // External URL (certificate PDF)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Portfolio: Contact Messages ────────────────────────────────────
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ─── Portfolio: Skill ───────────────────────────────────────────────
 model Skill {
   id          String   @id @default(cuid())
   name        String
@@ -84,28 +160,16 @@ model Skill {
   updatedAt   DateTime @updatedAt
 }
 
-model ContactMessage {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  subject   String?
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+// ─── Blog ───────────────────────────────────────────────────────────
+model Blog {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String                           // Rich HTML content
+  excerpt     String   @default("")            // Short summary
+  coverImage  String?                          // Cloudinary URL
+  tags        String   @default("")            // Comma separated
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
-
-model Profile {
-  id           String   @id @default("hero")
-  name         String   @default("Ahmad Jubayer")
-  headline     String   @default("Creative Designer & Developer")
-  aboutMe      String   @default("I craft beautiful user experiences and high-performance web applications.")
-  profileImage String?
-  resumeUrl    String?
-  websiteCount Int      @default(45)
-  mobileCount  Int      @default(45)
-  projectCount Int      @default(45)
-  updatedAt    DateTime @updatedAt
-}
-
-
-

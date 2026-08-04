@@ -189,3 +189,75 @@ export const sendWelcomeEmail = async (email, userName = "there") => {
     // Non-critical — don't throw
   }
 };
+
+/**
+ * Send contact form notification email to admin
+ * Matches Django's send_contact_email behavior
+ */
+export const sendContactNotificationEmail = async (contact) => {
+  try {
+    const transporter = await createTransporter();
+
+    const fromEmail =
+      process.env.EMAIL_FROM ||
+      (process.env.NODE_ENV === "production"
+        ? process.env.SMTP_USER
+        : "noreply@ethereal.email");
+
+    const adminEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || "jubayeruiuxjvai@gmail.com";
+
+    const mailOptions = {
+      from: fromEmail,
+      to: adminEmail,
+      subject: `New contact in my portfolio Confirmation. - ${contact.name}`,
+      text: `Contact Name: ${contact.name}\n\nContact Email:\n${contact.email}\n\nMessage: ${contact.message}\n\n`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 20px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+            .content { padding: 30px; }
+            .field { margin-bottom: 20px; }
+            .field-label { font-weight: bold; color: #667eea; font-size: 14px; margin-bottom: 5px; }
+            .field-value { background: #f8f9ff; border-left: 3px solid #667eea; padding: 12px 15px; border-radius: 4px; }
+            .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; background: #f9f9f9; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>📬 New Portfolio Contact</h1>
+            </div>
+            <div class="content">
+              <div class="field">
+                <div class="field-label">Name</div>
+                <div class="field-value">${contact.name}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Email</div>
+                <div class="field-value">${contact.email}</div>
+              </div>
+              <div class="field">
+                <div class="field-label">Message</div>
+                <div class="field-value">${contact.message}</div>
+              </div>
+            </div>
+            <div class="footer">
+              <p>This message was sent from your portfolio contact form.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log("Contact notification email sent for:", contact.name);
+  } catch (error) {
+    console.error("Error sending contact notification email:", error);
+    // Non-critical — don't throw
+  }
+};
