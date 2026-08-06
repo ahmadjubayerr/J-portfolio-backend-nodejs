@@ -166,9 +166,15 @@ export const getPublicExperience = async (req, res, next) => {
     });
 
     const data = experiences.map((e) => ({
+      id: e.id,
       position: e.position,
       title: e.title,
       description: e.description,
+      startDate: e.startDate,
+      endDate: e.endDate,
+      duration: e.duration,
+      start_date: e.startDate,
+      end_date: e.endDate,
     }));
 
     res.json(data);

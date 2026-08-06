@@ -419,11 +419,18 @@ export const getAdminExperiences = async (req, res, next) => {
 
 export const createExperience = async (req, res, next) => {
   try {
-    const { position, title, description } = req.body;
-    if (!position || !title) return res.status(400).json({ message: "Position and title are required" });
+    const { position, title, description, startDate, endDate, duration } = req.body;
+    if (!position) return res.status(400).json({ message: "Position is required" });
 
     const experience = await prisma.experience.create({
-      data: { position, title, description: description || "" },
+      data: {
+        position: position.trim(),
+        title: title ? title.trim() : "",
+        description: description ? description.trim() : "",
+        startDate: startDate || "",
+        endDate: endDate || "",
+        duration: duration || "",
+      },
     });
     res.status(201).json({ message: "Experience created", experience });
   } catch (error) {
@@ -433,13 +440,16 @@ export const createExperience = async (req, res, next) => {
 
 export const updateExperience = async (req, res, next) => {
   try {
-    const { position, title, description } = req.body;
+    const { position, title, description, startDate, endDate, duration } = req.body;
     const experience = await prisma.experience.update({
       where: { id: req.params.id },
       data: {
         ...(position !== undefined && { position }),
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
+        ...(startDate !== undefined && { startDate }),
+        ...(endDate !== undefined && { endDate }),
+        ...(duration !== undefined && { duration }),
       },
     });
     res.json({ message: "Experience updated", experience });

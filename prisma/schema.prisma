@@ -123,6 +123,9 @@ model Experience {
   position    String
   title       String
   description String
+  startDate   String?  @default("")
+  endDate     String?  @default("")
+  duration    String?  @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
