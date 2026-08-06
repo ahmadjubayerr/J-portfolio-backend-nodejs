@@ -263,6 +263,7 @@ function formatProjectForPublic(p) {
   return {
     id: p.id,
     title: p.title,
+    description: p.description || "",
     tag: p.tag,
     category: p.category,
     duration: p.duration,

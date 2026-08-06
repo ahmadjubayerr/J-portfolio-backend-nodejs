@@ -215,7 +215,7 @@ async function processBodyBase64Images(bodyStr) {
 
 export const createProject = async (req, res, next) => {
   try {
-    const { title, body, tag, category, duration, responsibility, client, bgColor, overviewVideoLink, isFavorite, isPublished } = req.body;
+    const { title, body, description, tag, category, duration, responsibility, client, bgColor, overviewVideoLink, isFavorite, isPublished } = req.body;
 
     let canvasImageUrl = null;
     let svgFileUrl = null;
@@ -264,6 +264,7 @@ export const createProject = async (req, res, next) => {
     const project = await prisma.project.create({
       data: {
         title: title || "Untitled Project",
+        description: description || "",
         body: processedBody,
         tag: tag || "",
         category: category || "website",
@@ -288,7 +289,7 @@ export const createProject = async (req, res, next) => {
 export const updateProject = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, body, tag, category, duration, responsibility, client, bgColor, overviewVideoLink, isFavorite, isPublished } = req.body;
+    const { title, body, description, tag, category, duration, responsibility, client, bgColor, overviewVideoLink, isFavorite, isPublished } = req.body;
 
     const existing = await prisma.project.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ message: "Project not found" });
@@ -344,6 +345,7 @@ export const updateProject = async (req, res, next) => {
       where: { id },
       data: {
         ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
         ...(processedBody !== undefined && { body: processedBody }),
         ...(tag !== undefined && { tag }),
         ...(category !== undefined && { category }),

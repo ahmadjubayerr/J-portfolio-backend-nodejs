@@ -101,6 +101,7 @@ model Achievement {
 model Project {
   id                String   @id @default(cuid())
   title             String
+  description       String?  @default("")
   body              String                        // Rich text / description
   tag               String   @default("")         // Comma separated tags
   category          String   @default("website")  // website, mobile, live, case_study, graphics, saas, dashboard, landing_page
