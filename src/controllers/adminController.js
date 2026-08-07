@@ -147,9 +147,35 @@ export const uploadVisionImage = async (req, res, next) => {
 export const getAdminProjects = async (req, res, next) => {
   try {
     const projects = await prisma.project.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
     res.json(projects);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reorderProjects = async (req, res, next) => {
+  try {
+    const { projectIds } = req.body;
+    if (!Array.isArray(projectIds)) {
+      return res.status(400).json({ message: "projectIds must be an array of IDs" });
+    }
+
+    const updates = projectIds.map((id, index) =>
+      prisma.project.update({
+        where: { id },
+        data: { order: index },
+      })
+    );
+
+    await prisma.$transaction(updates);
+
+    const projects = await prisma.project.findMany({
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    });
+
+    res.json({ message: "Projects reordered successfully", projects });
   } catch (error) {
     next(error);
   }

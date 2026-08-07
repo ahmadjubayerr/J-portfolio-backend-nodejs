@@ -92,7 +92,7 @@ export const getPublicProjects = async (req, res, next) => {
     const projects = await dbQueryWithRetry(() =>
       prisma.project.findMany({
         where,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       })
     );
 
@@ -109,7 +109,7 @@ export const getPublicFavoriteProjects = async (req, res, next) => {
     const projects = await dbQueryWithRetry(() =>
       prisma.project.findMany({
         where: { isFavorite: true, isPublished: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ order: "asc" }, { createdAt: "desc" }],
       })
     );
 

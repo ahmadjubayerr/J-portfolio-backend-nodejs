@@ -15,6 +15,7 @@ import {
   deleteProject,
   toggleProjectFavorite,
   toggleProjectPublish,
+  reorderProjects,
   uploadFile,
   // Experience
   getAdminExperiences,
@@ -64,6 +65,7 @@ const projectUpload = upload.fields([
   { name: "svgFile", maxCount: 1 },
 ]);
 router.get("/projects", getAdminProjects);
+router.put("/projects/reorder", reorderProjects);
 router.get("/projects/:id", getAdminProject);
 router.post("/projects", projectUpload, createProject);
 router.put("/projects/:id", projectUpload, updateProject);
