@@ -236,6 +236,11 @@ export const createProject = async (req, res, next) => {
     if (!canvasImageUrl && req.body.canvasImage) canvasImageUrl = req.body.canvasImage;
     if (!svgFileUrl && req.body.svgFile) svgFileUrl = req.body.svgFile;
 
+    // Default cover image (canvasImage) to banner image (svgFile) if canvasImage is not provided
+    if (!canvasImageUrl && svgFileUrl) {
+      canvasImageUrl = svgFileUrl;
+    }
+
     // Automatically convert base64 image data to Cloudinary upload
     if (canvasImageUrl && canvasImageUrl.startsWith("data:image")) {
       try {
@@ -314,6 +319,11 @@ export const updateProject = async (req, res, next) => {
     }
     if (req.body.svgFile !== undefined && !req.files?.svgFile) {
       svgFileUrl = req.body.svgFile || null;
+    }
+
+    // Default cover image (canvasImage) to banner image (svgFile) if canvasImage is not provided
+    if (!canvasImageUrl && svgFileUrl) {
+      canvasImageUrl = svgFileUrl;
     }
 
     // Automatically convert base64 image data to Cloudinary upload
