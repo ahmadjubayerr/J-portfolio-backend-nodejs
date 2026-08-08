@@ -80,10 +80,31 @@ async function dbQueryWithRetry(fn, retries = 3, delayMs = 500) {
   }
 }
 
+// In-memory cache for public projects to eliminate Neon DB latency/timeouts
+let projectsCache = null;
+let projectsCacheTime = 0;
+let favoriteProjectsCache = null;
+let favoriteProjectsCacheTime = 0;
+const CACHE_TTL = 300000; // 5 minutes
+
+export function clearPublicProjectsCache() {
+  projectsCache = null;
+  projectsCacheTime = 0;
+  favoriteProjectsCache = null;
+  favoriteProjectsCacheTime = 0;
+}
+
 // ─── GET /api/projects/ ─────────────────────────────────────────────
 export const getPublicProjects = async (req, res, next) => {
   try {
     const { category } = req.query;
+    const now = Date.now();
+
+    // Serve from cache if available and fresh
+    if (!category && projectsCache && (now - projectsCacheTime < CACHE_TTL)) {
+      return res.json(projectsCache);
+    }
+
     const where = { isPublished: true };
     if (category) {
       where.category = category;
@@ -97,8 +118,18 @@ export const getPublicProjects = async (req, res, next) => {
     );
 
     const data = projects.map(formatProjectForPublic);
+
+    if (!category && data.length > 0) {
+      projectsCache = data;
+      projectsCacheTime = now;
+    }
+
     res.json(data);
   } catch (error) {
+    console.error("Failed to fetch public projects:", error);
+    if (projectsCache) {
+      return res.json(projectsCache);
+    }
     next(error);
   }
 };
@@ -106,6 +137,12 @@ export const getPublicProjects = async (req, res, next) => {
 // ─── GET /api/favorite-projects/ ────────────────────────────────────
 export const getPublicFavoriteProjects = async (req, res, next) => {
   try {
+    const now = Date.now();
+
+    if (favoriteProjectsCache && (now - favoriteProjectsCacheTime < CACHE_TTL)) {
+      return res.json(favoriteProjectsCache);
+    }
+
     const projects = await dbQueryWithRetry(() =>
       prisma.project.findMany({
         where: { isFavorite: true, isPublished: true },
@@ -114,8 +151,18 @@ export const getPublicFavoriteProjects = async (req, res, next) => {
     );
 
     const data = projects.map(formatProjectForPublic);
+
+    if (data.length > 0) {
+      favoriteProjectsCache = data;
+      favoriteProjectsCacheTime = now;
+    }
+
     res.json(data);
   } catch (error) {
+    console.error("Failed to fetch favorite projects:", error);
+    if (favoriteProjectsCache) {
+      return res.json(favoriteProjectsCache);
+    }
     next(error);
   }
 };
