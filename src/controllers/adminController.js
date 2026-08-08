@@ -268,7 +268,7 @@ export const createProject = async (req, res, next) => {
     }
 
     // Automatically convert base64 image data to Cloudinary upload
-    if (canvasImageUrl && canvasImageUrl.startsWith("data:image")) {
+    if (canvasImageUrl && typeof canvasImageUrl === "string" && canvasImageUrl.startsWith("data:image")) {
       try {
         const base64Data = canvasImageUrl.replace(/^data:image\/\w+;base64,/, "");
         const buffer = Buffer.from(base64Data, "base64");
@@ -279,7 +279,7 @@ export const createProject = async (req, res, next) => {
       }
     }
 
-    if (svgFileUrl && svgFileUrl.startsWith("data:image")) {
+    if (svgFileUrl && typeof svgFileUrl === "string" && svgFileUrl.startsWith("data:image")) {
       try {
         const base64Data = svgFileUrl.replace(/^data:image\/\w+;base64,/, "");
         const buffer = Buffer.from(base64Data, "base64");
