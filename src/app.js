@@ -80,6 +80,9 @@ app.use("/profile", publicRoutes);
 app.use("/admin", adminRoutes);
 app.use("/api/admin", adminRoutes);
 
+// Favicon handler
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+
 // Health check
 app.get("/", (req, res) => {
   res.json({ status: "ok", message: "Portfolio Backend API" });
