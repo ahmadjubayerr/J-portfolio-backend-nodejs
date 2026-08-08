@@ -405,7 +405,14 @@ export const updateProject = async (req, res, next) => {
 
 export const deleteProject = async (req, res, next) => {
   try {
-    await prisma.project.delete({ where: { id: req.params.id } });
+    const { id } = req.params;
+    const existing = await prisma.project.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: "Project not found or already deleted" });
+    }
+
+    await prisma.project.delete({ where: { id } });
+    clearPublicProjectsCache();
     res.json({ message: "Project deleted" });
   } catch (error) {
     next(error);
